@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { analyzeItem, buildResult, rankOffers } from "./compare";
+import type { ItemResult, LineItem, Offer } from "./types";
 import { sameDimension, toBase, unitLabel } from "./units";
 
 describe("toBase", () => {
