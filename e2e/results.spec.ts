@@ -102,6 +102,13 @@ test("no savings shows the good prices message", async ({ page }) => {
   await expect(page.getByTestId("total-month")).toHaveText("You already pay good prices");
 });
 
+test("no prices given shows the best prices headline", async ({ page }) => {
+  const items = RESULT.items.map((r) => ({ ...r, currentUnitCost: null, savingsPerOrder: null }));
+  await mockApi(page, [{ type: "result", data: { ...RESULT, items, totalSavingsPerOrder: 0, totalSavingsPerMonth: 0, totalSavingsPerYear: 0 } }]);
+  await submitList(page);
+  await expect(page.getByTestId("total-month")).toHaveText("Here are the best prices Clippy found");
+});
+
 test("progress steps appear", async ({ page }) => {
   await page.route("**/api/analyze", async (route) => {
     await new Promise((r) => setTimeout(r, 3000));

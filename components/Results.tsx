@@ -17,6 +17,7 @@ export default function Results({
 }) {
   const month = result.totalSavingsPerMonth;
   const saves = Number.isFinite(month) && month >= 0.01;
+  const knowsPrices = result.items.some((r) => r.currentUnitCost !== null && r.best);
 
   return (
     <section data-testid="results" className="space-y-6">
@@ -39,7 +40,7 @@ export default function Results({
           </>
         ) : (
           <p data-testid="total-month" className="text-2xl font-bold sm:text-3xl">
-            You already pay good prices
+            {knowsPrices ? "You already pay good prices" : "Here are the best prices Clippy found"}
           </p>
         )}
       </div>
@@ -111,7 +112,7 @@ function per(r: ItemResult, offer?: RankedOffer | null) {
 }
 
 function current(r: ItemResult) {
-  return r.currentUnitCost !== null ? `${unitMoney(r.currentUnitCost)} ${per(r)}` : "Not on invoice";
+  return r.currentUnitCost !== null ? `${unitMoney(r.currentUnitCost)} ${per(r)}` : "Not given";
 }
 
 function savings(r: ItemResult) {
