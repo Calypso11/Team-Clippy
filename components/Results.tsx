@@ -28,7 +28,7 @@ export default function Results({
         {saves ? (
           <>
             <p className="text-sm font-medium text-emerald-100">You could</p>
-            <p data-testid="total-month" className="text-4xl font-bold tracking-tight sm:text-5xl">
+            <p data-testid="total-month" className="text-3xl font-bold tracking-tight sm:text-5xl">
               Save {money(month)} per month
             </p>
             <p className="mt-1 text-lg text-emerald-50">{money(result.totalSavingsPerYear)} per year</p>
