@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildSuggestionInput, GOOD_PRICES_TIP, templateSuggestions, writeSuggestions } from "./suggest";
+import { ADD_PRICES_TIP, buildSuggestionInput, GOOD_PRICES_TIP, NO_PRICES_TIP, templateSuggestions, writeSuggestions } from "./suggest";
 import type { ItemResult, LineItem, RankedOffer } from "./types";
 
 vi.mock("@anthropic-ai/sdk", () => ({
@@ -60,5 +60,28 @@ describe("writeSuggestions", () => {
 
   it("returns the good-prices line without calling Claude when nothing saves money", async () => {
     expect(await writeSuggestions([result("lids", 0, 0.07)], 4)).toEqual([GOOD_PRICES_TIP]);
+  });
+
+  it("gives the best price per item and asks for prices when the owner gave none", async () => {
+    expect(await writeSuggestions([result("cups", null, null), result("lids", null, null, 0.05)], 4)).toEqual([
+      "Best price I found for cups: $0.100 per cup at cups Store.",
+      "Best price I found for lids: $0.050 per lid at lids Store.",
+      ADD_PRICES_TIP,
+    ]);
+  });
+
+  it("adds a line for items with no reliable price after the saving tips", async () => {
+    const tips = await writeSuggestions(
+      [result("hot cups", 20, 0.122, 0.102), { ...result("sugar", null, 1.1), best: null }, { ...result("flour", null, 1.5), best: null }],
+      4,
+    );
+    expect(tips).toEqual([
+      ...templateSuggestions(buildSuggestionInput([result("hot cups", 20, 0.122, 0.102)])),
+      "I could not find a reliable price for sugar and flour.",
+    ]);
+  });
+
+  it("says no reliable prices when no store price was found", async () => {
+    expect(await writeSuggestions([{ ...result("flour", null, 1.5), best: null, offers: [] }], 4)).toEqual([NO_PRICES_TIP]);
   });
 });

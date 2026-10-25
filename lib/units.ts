@@ -29,6 +29,13 @@ export function unitLabel(baseUnit: BaseUnit, itemName: string): string {
   if (baseUnit === "lb") return "per lb";
   if (baseUnit === "fl_oz") return "per fl oz";
   const name = itemName.toLowerCase();
-  const word = EACH_WORDS.find((w) => new RegExp(`\\b${w}s?\\b`).test(name));
+  // The noun usually comes last ("Hot Cup Lids" are lids), so pick the word found latest in the name.
+  let word: string | undefined;
+  let at = -1;
+  for (const w of EACH_WORDS) {
+    for (const m of name.matchAll(new RegExp(`\\b${w}s?\\b`, "g"))) {
+      if (m.index > at) [word, at] = [w, m.index];
+    }
+  }
   return word ? `per ${word}` : "per item";
 }

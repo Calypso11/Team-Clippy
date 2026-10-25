@@ -1,21 +1,21 @@
+// Live steps inside Clippy's reply while it works.
 export default function Progress({ steps }: { steps: string[] }) {
   return (
-    <div data-testid="progress" className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-      <h2 className="mb-4 text-lg font-semibold text-slate-900">Clippy is checking prices…</h2>
-      <ol className="space-y-3" aria-live="polite">
-        {steps.length === 0 && <Step text="Getting started" current />}
+    <div data-testid="progress">
+      <ol className="space-y-2" aria-live="polite">
+        {steps.length === 0 && <Step text="Getting started…" current />}
         {steps.map((s, i) => (
           <Step key={i} text={s} current={i === steps.length - 1} />
         ))}
       </ol>
-      <p className="mt-5 text-xs text-slate-500">This usually takes under a minute.</p>
+      <p className="mt-3 text-xs text-slate-500">This usually takes under a minute.</p>
     </div>
   );
 }
 
 function Step({ text, current }: { text: string; current: boolean }) {
   return (
-    <li className="flex items-start gap-3 text-sm">
+    <li className="flex items-start gap-3 text-[15px]">
       {current ? (
         <span
           aria-label="in progress"

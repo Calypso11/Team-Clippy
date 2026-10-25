@@ -2,15 +2,17 @@
 
 **Upload a photo of your supply invoice, and Clippy shows you which stores sell the same items for less, and how much you would save each month.**
 
-Live demo: <LIVE_URL>
+Live demo: https://clippy-nu-eight.vercel.app
 
-| Start | Your savings (phone) | Your savings (computer) |
+Code: https://github.com/Calypso11/Team-Clippy
+
+| Chat | Clippy's answer (phone) | Clippy's answer (computer) |
 | --- | --- | --- |
 | ![Start screen](public/screenshots/input.png) | ![Results on a phone](public/screenshots/results-mobile.png) | ![Results on a computer](public/screenshots/results-desktop.png) |
 
 ## How it works
 
-1. **Add your items.** Take a photo of a supply invoice or receipt, or just type what you buy (for example "50 lb bread flour, 1000 12 oz cups").
+1. **Chat with Clippy.** Attach a photo of a supply invoice or receipt, or just type what you buy (for example "50 lb bread flour, 1000 12 oz cups"), like you would in a chat app.
 2. **Clippy reads it.** It finds each item, the pack size, and the price you pay now.
 3. **Clippy searches real stores.** It looks up the same items on public store websites.
 4. **Clippy compares fairly.** It works out the real price per pound, per cup or per item, including shipping, so a big pack and a small pack can be compared.
@@ -22,9 +24,9 @@ Clippy never buys anything for you. You decide where to shop.
 
 You do not need to write code or set up a database.
 
-1. **Deploy.** Click the button below and sign in to Vercel (free).
+1. **Deploy.** Click the button below and sign in to Vercel (free). Vercel copies the code and asks for the two keys below.
 
-   [![Deploy with Vercel](https://vercel.com/button)](<VERCEL_DEPLOY_URL>)
+   [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FCalypso11%2FTeam-Clippy&env=ANTHROPIC_API_KEY,TAVILY_API_KEY&envDescription=Your%20Anthropic%20and%20Tavily%20API%20keys)
 
 2. **Add your Anthropic key.** Make a key at [console.anthropic.com](https://console.anthropic.com) and paste it into Vercel as `ANTHROPIC_API_KEY`.
 3. **Add your Tavily key.** Make a key at [tavily.com](https://tavily.com) and paste it into Vercel as `TAVILY_API_KEY`.
@@ -33,7 +35,7 @@ That's it. Open your new site and upload an invoice.
 
 ## What it costs
 
-About **<COST_PER_ANALYSIS>** per invoice check (Anthropic and Tavily usage). There is no monthly fee from Clippy.
+About **$0.35** per invoice check, measured on our 5-item sample invoice: about $0.17 for Claude and about $0.16 for Tavily (20 search credits at the pay-as-you-go price). Tavily's free plan includes 1,000 credits a month, which covers about 50 checks. There is no monthly fee from Clippy.
 
 ## Limits
 

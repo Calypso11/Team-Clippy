@@ -3,43 +3,43 @@
 import { useState } from "react";
 import type { AnalysisResult, ItemResult, RankedOffer } from "@/lib/types";
 import { toBase, unitLabel } from "@/lib/units";
-import HelperIcon from "./HelperIcon";
 import { money, safeHref, shortDate, unitMoney } from "./format";
 
-export default function Results({
-  result,
-  exampleLabel,
-  onRestart,
-}: {
-  result: AnalysisResult;
-  exampleLabel?: string;
-  onRestart: () => void;
-}) {
+// Shown inside Clippy's chat reply: tips first (Clippy talking), then the numbers.
+export default function Results({ result, exampleLabel }: { result: AnalysisResult; exampleLabel?: string }) {
   const month = result.totalSavingsPerMonth;
   const saves = Number.isFinite(month) && month >= 0.01;
   const knowsPrices = result.items.some((r) => r.currentUnitCost !== null && r.best);
 
   return (
-    <section data-testid="results" className="space-y-6">
+    <section data-testid="results" className="space-y-4">
       {exampleLabel && (
         <p className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200">{exampleLabel}</p>
       )}
 
-      <div className="rounded-3xl bg-emerald-600 p-6 text-white shadow-sm">
+      {result.suggestions.length > 0 && (
+        <ul className="space-y-2 text-[15px] leading-relaxed text-slate-800">
+          {result.suggestions.map((s, i) => (
+            <li key={i}>{s}</li>
+          ))}
+        </ul>
+      )}
+
+      <div className="rounded-2xl bg-emerald-600 p-5 text-white">
         {saves ? (
           <>
             <p className="text-sm font-medium text-emerald-100">You could</p>
-            <p data-testid="total-month" className="text-3xl font-bold tracking-tight sm:text-5xl">
+            <p data-testid="total-month" className="text-2xl font-bold tracking-tight sm:text-4xl">
               Save {money(month)} per month
             </p>
-            <p className="mt-1 text-lg text-emerald-50">{money(result.totalSavingsPerYear)} per year</p>
+            <p className="mt-1 text-base text-emerald-50">{money(result.totalSavingsPerYear)} per year</p>
             <p className="mt-2 text-xs text-emerald-100">
               Based on {result.ordersPerMonth} {result.ordersPerMonth === 1 ? "order" : "orders"} per month ·{" "}
               {money(result.totalSavingsPerOrder)} per order
             </p>
           </>
         ) : (
-          <p data-testid="total-month" className="text-2xl font-bold sm:text-3xl">
+          <p data-testid="total-month" className="text-xl font-bold sm:text-2xl">
             {knowsPrices ? "You already pay good prices" : "Here are the best prices Clippy found"}
           </p>
         )}
@@ -49,37 +49,24 @@ export default function Results({
         <p className="rounded-2xl bg-sky-50 px-4 py-3 text-sm text-sky-900 ring-1 ring-sky-200">{result.notice}</p>
       )}
 
-      {result.suggestions.length > 0 && (
-        <div className="flex items-start gap-3">
-          <HelperIcon className="h-12 w-12 shrink-0" />
-          <div className="relative flex-1 rounded-2xl rounded-tl-sm bg-white p-4 shadow-sm ring-1 ring-slate-200">
-            <ul className="space-y-2 text-sm text-slate-800">
-              {result.suggestions.map((s, i) => (
-                <li key={i}>{s}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
-
-      {/* Mobile: cards */}
+      {/* Phones: cards */}
       <div className="space-y-3 md:hidden">
         {result.items.map((r) => (
           <ItemCard key={r.item.id} r={r} />
         ))}
       </div>
 
-      {/* Desktop: table */}
-      <div className="hidden overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-200 md:block">
+      {/* Computers: table */}
+      <div className="hidden overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200 md:block">
         <table className="w-full text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
-              <th className="px-4 py-3">Item</th>
-              <th className="px-4 py-3">You pay now</th>
-              <th className="px-4 py-3">Best store</th>
-              <th className="px-4 py-3">Best price</th>
-              <th className="px-4 py-3">Savings per order</th>
-              <th className="px-4 py-3"></th>
+              <th className="px-3 py-3">Item</th>
+              <th className="px-3 py-3">You pay now</th>
+              <th className="px-3 py-3">Best store</th>
+              <th className="px-3 py-3">Best price</th>
+              <th className="px-3 py-3">Savings per order</th>
+              <th className="px-3 py-3"></th>
             </tr>
           </thead>
           <tbody>
@@ -89,19 +76,6 @@ export default function Results({
           </tbody>
         </table>
       </div>
-
-      <footer className="space-y-4 pt-2 text-center">
-        <p className="text-xs text-slate-500">
-          Prices come from public store pages and can change. Check before you buy. Clippy never buys for you.
-        </p>
-        <button
-          type="button"
-          onClick={onRestart}
-          className="rounded-2xl border border-slate-300 bg-white px-6 py-3 font-medium text-slate-700 hover:bg-slate-50"
-        >
-          Start again
-        </button>
-      </footer>
     </section>
   );
 }
@@ -128,7 +102,7 @@ function OpenLink({ offer }: { offer: RankedOffer }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-block rounded-xl bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+      className="inline-block whitespace-nowrap rounded-xl bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
     >
       Open product
     </a>
@@ -194,8 +168,12 @@ function ItemCard({ r }: { r: ItemResult }) {
             <dd className="text-right text-slate-800">
               {unitMoney(r.best.unitCost)} {per(r, r.best)}
             </dd>
-            <dt className="text-slate-500">Savings per order</dt>
-            <dd className="text-right font-semibold text-emerald-700">{savings(r)}</dd>
+            {r.savingsPerOrder !== null && (
+              <>
+                <dt className="text-slate-500">Savings per order</dt>
+                <dd className="text-right font-semibold text-emerald-700">{savings(r)}</dd>
+              </>
+            )}
           </>
         ) : null}
       </dl>
@@ -215,25 +193,25 @@ function ItemCard({ r }: { r: ItemResult }) {
 function ItemTableRow({ r }: { r: ItemResult }) {
   return (
     <tr data-testid="item-row" className="border-t border-slate-100 align-top">
-      <td className="px-4 py-4 font-medium text-slate-900">
+      <td className="px-3 py-4 font-medium text-slate-900">
         {r.item.name}
         <OtherOffers r={r} />
       </td>
-      <td className="px-4 py-4 text-slate-700">{current(r)}</td>
+      <td className="whitespace-nowrap px-3 py-4 text-slate-700">{current(r)}</td>
       {r.best ? (
         <>
-          <td className="px-4 py-4 text-slate-800">{r.best.store}</td>
-          <td className="px-4 py-4 text-slate-800">
+          <td className="px-3 py-4 text-slate-800">{r.best.store}</td>
+          <td className="whitespace-nowrap px-3 py-4 text-slate-800">
             {unitMoney(r.best.unitCost)} {per(r, r.best)}
           </td>
-          <td className="px-4 py-4 font-semibold text-emerald-700">{savings(r)}</td>
-          <td className="px-4 py-4 text-right">
+          <td className="px-3 py-4 font-semibold text-emerald-700">{savings(r)}</td>
+          <td className="px-3 py-4 text-right">
             <OpenLink offer={r.best} />
-            <p className="mt-1 text-xs text-slate-500">checked {shortDate(r.best.checkedAt)}</p>
+            <p className="mt-1 whitespace-nowrap text-xs text-slate-500">checked {shortDate(r.best.checkedAt)}</p>
           </td>
         </>
       ) : (
-        <td colSpan={4} className="px-4 py-4 text-slate-500">
+        <td colSpan={4} className="px-3 py-4 text-slate-500">
           No reliable price found.
         </td>
       )}

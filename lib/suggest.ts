@@ -6,6 +6,32 @@ import { unitLabel } from "./units";
 const MAX_TIPS = 3;
 const MAX_WORDS = 24;
 export const GOOD_PRICES_TIP = "Great news: you already pay good prices for these items. Keep it up!";
+export const ADD_PRICES_TIP = "Add the price you pay now to each item, and Clippy will show how much you could save.";
+export const NO_PRICES_TIP = "Clippy could not find reliable store prices for these items this time.";
+
+const MAX_PRICE_TIPS = 3;
+
+// Tips for items Clippy could not compare: the best price found, or that none was found. Template only, no Claude.
+export function extraTips(results: ItemResult[], hasSavingTips: boolean): string[] {
+  const compared = results.some((r) => r.best && r.currentUnitCost !== null);
+  const priceOnly = results.filter((r) => r.best && r.currentUnitCost === null);
+  const missing = results.filter((r) => !r.best).map((r) => r.item.name);
+  if (!compared && priceOnly.length === 0) return [NO_PRICES_TIP];
+
+  const tips: string[] = [];
+  if (!hasSavingTips && compared) tips.push(GOOD_PRICES_TIP);
+  for (const r of priceOnly.slice(0, MAX_PRICE_TIPS)) {
+    const label = unitLabel(r.best!.baseUnit, r.item.name);
+    tips.push(`Best price I found for ${r.item.name}: ${unitMoney(r.best!.unitCost)} ${label} at ${r.best!.store}.`);
+  }
+  if (missing.length) tips.push(`I could not find a reliable price for ${joinNames(missing)}.`);
+  if (priceOnly.length) tips.push(ADD_PRICES_TIP);
+  return tips;
+}
+
+function joinNames(names: string[]): string {
+  return names.length <= 2 ? names.join(" and ") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+}
 
 export interface SuggestionRow {
   item: string;
@@ -59,9 +85,14 @@ const SAVE_TIPS_TOOL: Anthropic.Tool = {
 
 let client: Anthropic | undefined;
 
+// Saving tips first (written by Claude, template fallback), then tips for the items Clippy could not compare.
 export async function writeSuggestions(results: ItemResult[], ordersPerMonth: number): Promise<string[]> {
   const rows = buildSuggestionInput(results);
-  if (rows.length === 0) return [GOOD_PRICES_TIP];
+  const savingTips = rows.length ? await writeSavingTips(rows, ordersPerMonth) : [];
+  return [...savingTips, ...extraTips(results, savingTips.length > 0)];
+}
+
+async function writeSavingTips(rows: SuggestionRow[], ordersPerMonth: number): Promise<string[]> {
   const input = JSON.stringify({ ordersPerMonth, items: rows }, null, 2);
   try {
     client ??= new Anthropic();

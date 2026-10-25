@@ -87,6 +87,8 @@ test("results render with clean money and valid links", async ({ page }) => {
     expect(await link.getAttribute("rel")).toContain("noopener");
   }
 
+  await page.waitForTimeout(700); // let the chat scroll to the answer
+  await page.screenshot({ path: `e2e/screenshots/results-top-${test.info().project.name}.png` });
   await rows.nth(0).getByRole("button", { name: /See other offers/ }).click();
   await expect(rows.nth(0)).toContainText("Test Store B");
 
