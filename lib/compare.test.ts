@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { rankOffers } from "./compare";
+import type { LineItem, Offer } from "./types";
 import { sameDimension, toBase, unitLabel } from "./units";
 
 describe("toBase", () => {
@@ -45,4 +47,52 @@ describe("unitLabel", () => {
   it("glove", () => expect(unitLabel("each", "Nitrile Gloves L")).toBe("per glove"));
   it("falls back to item", () => expect(unitLabel("each", "Straws")).toBe("per item"));
   it("does not match cup inside cupcake", () => expect(unitLabel("each", "Cupcake liners")).toBe("per item"));
+});
+
+const flour: LineItem = { id: "flour", name: "Flour", searchQuery: "all purpose flour 50 lb", packSize: 50, unit: "lb", qtyPerOrder: 2 };
+
+function offer(over: Partial<Offer> = {}): Offer {
+  return {
+    itemId: "flour", store: "Store", title: "Flour 50 lb", url: "https://example.com/flour", price: 60, packSize: 50,
+    unit: "lb", shipping: 12, confidence: "high", checkedAt: "2026-10-25T12:00:00Z", ...over,
+  };
+}
+
+describe("rankOffers", () => {
+  it("computes unit cost including shipping", () => {
+    const [r] = rankOffers(flour, [offer()]);
+    expect(r.unitCost).toBeCloseTo(1.44, 10);
+    expect(r.baseUnit).toBe("lb");
+  });
+  it("drops a 5 lb offer for a 50 lb item", () => {
+    expect(rankOffers(flour, [offer({ packSize: 5, price: 6 })])).toEqual([]);
+  });
+  it("drops packs over 400%", () => {
+    expect(rankOffers(flour, [offer({ packSize: 250 })])).toEqual([]);
+  });
+  it("keeps packs at the 25% and 400% edges", () => {
+    expect(rankOffers(flour, [offer({ packSize: 12.5 }), offer({ packSize: 200 })])).toHaveLength(2);
+  });
+  it("drops low confidence", () => {
+    expect(rankOffers(flour, [offer({ confidence: "low" })])).toEqual([]);
+  });
+  it("treats null shipping as 0", () => {
+    const [r] = rankOffers(flour, [offer({ shipping: null })]);
+    expect(r.unitCost).toBeCloseTo(1.2, 10);
+  });
+  it("drops a different dimension", () => {
+    expect(rankOffers(flour, [offer({ unit: "fl_oz" })])).toEqual([]);
+  });
+  it("drops price <= 0", () => {
+    expect(rankOffers(flour, [offer({ price: 0 }), offer({ price: -5 })])).toEqual([]);
+  });
+  it("converts units and sorts cheapest first", () => {
+    const ranked = rankOffers(flour, [
+      offer({ store: "A", price: 70, shipping: 0 }),
+      offer({ store: "B", packSize: 20, unit: "kg", price: 40, shipping: 0 }),
+      offer({ store: "C", price: 55, shipping: 0, confidence: "medium" }),
+    ]);
+    expect(ranked.map((r) => r.store)).toEqual(["B", "C", "A"]);
+    expect(ranked[0].unitCost).toBeCloseTo(40 / 44.0924, 10);
+  });
 });
