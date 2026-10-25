@@ -131,8 +131,10 @@ class TestGate(unittest.TestCase):
             self.assertIn('"event": "approved"', path.read_text())
 
     def test_cli_exit_codes(self):
+        import contextlib
+        import io
         import json
-        with tempfile.TemporaryDirectory() as tmp:
+        with tempfile.TemporaryDirectory() as tmp, contextlib.redirect_stdout(io.StringIO()):
             out = Path(tmp) / "result.json"
             audit = Path(tmp) / "audit.jsonl"
             code = compare.main(["--quotes", str(ROOT / "examples" / "quotes.flour.json"),

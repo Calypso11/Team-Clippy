@@ -25,6 +25,24 @@ Owner (text / voice / PDF / photo)
         └── vendor skill, cart + checkout phases → stops at the payment page → owner pays
 ```
 
+## Where we start
+
+Capture (recording a purchase and parsing it into a skill) belongs to another teammate. BuyOnce **assumes a skill exists** and takes it forward:
+
+```
+vendor skill (SKILL.md from the recorder)
+   │  tools/preflight.py   steps, phases, owner-only steps, the transaction boundary, secrets check
+   ▼
+tools/executor.py  (run controller, holds the rules)
+   │   ▲
+   │   └── reports from the browser / computer-use agent (any agent; it only needs a shell and JSON)
+   ▼
+one step at a time ─► quotes ─► compare.py + gate.py ─► approval card ─► owner "approve"
+                  ─► cart ─► checkout ─► STOP at the transaction boundary (owner pays)
+```
+
+The controller is deliberately separate from the agent. The agent is replaceable (Claude in Chrome, Playwright MCP, an open-source computer-use system); the rules are not. See [EXECUTOR.md](EXECUTOR.md) and [SKILL_CONTRACT.md](SKILL_CONTRACT.md).
+
 ## Why split it this way
 
 - **Skills hold judgment and site knowledge.** They are text the owner can read and fix. A new vendor is a new folder, not a code change.
