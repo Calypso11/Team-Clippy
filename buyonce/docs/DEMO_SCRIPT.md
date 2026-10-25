@@ -3,7 +3,8 @@
 Cast: a baker who spends two evenings a month on supplier websites.
 
 ## Before you go on stage
-- [ ] `python3 tools/demo.py --yes` runs clean on the laptop you'll present from.
+- [ ] `python3 tools/demo.py --yes` and `python3 tools/sim_run.py` run clean on the laptop you'll present from. `sim_run.py` is the no-browser fallback that still shows every gate.
+- [ ] Agree with the capture teammate which skill the live demo uses, and run `python3 tools/preflight.py <skill>` on it.
 - [ ] `policy/policy.toml` exists (copy the example), with the bakery's rules visible.
 - [ ] Record the SauceDemo purchase once, ahead of time, so the recording step shows a finished skill (or have a short clip ready as backup).
 - [ ] Browser signed in and the Claude desktop app open. Have the terminal demo ready as the fallback if Wi-Fi fails.

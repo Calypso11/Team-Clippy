@@ -24,6 +24,11 @@ min_rating = 4.0              # skip vendors rated below this (out of 5)
 [delivery]
 max_days = 7                  # used when a request has no explicit deadline
 
+[sandbox]
+# Practice sites that take no real payment. On these (and only these) the agent may do the
+# final step itself after you approve. Everywhere else it stops at the payment boundary.
+hosts = ["www.saucedemo.com"]
+
 [scoring]
 # How to rank vendors that pass every rule above. Weights are relative.
 price = 0.55

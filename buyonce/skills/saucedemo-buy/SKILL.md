@@ -7,7 +7,7 @@ description: Get a quote from, and prepare an order with, Swag Labs on SauceDemo
 
 # SauceDemo purchasing skill (reference example)
 
-Source: hand-written reference for what `buyonce-record` produces from one recorded purchase. **Status: draft, not yet run against the live site.** Record your own purchase on saucedemo.com with `buyonce-record` to confirm and update the quirks below. Last verified: never.
+Source: hand-written reference for what `buyonce-record` produces from one recorded purchase. **Status: run live once through the run controller with Claude in Chrome on 2026-10-25 (see `examples/live-run-2026-10-25.md`); every step worked as written.** Last verified: 2026-10-25.
 
 SauceDemo is a public practice shop built for automation testing. It takes no real payment, which makes it a safe place to rehearse the whole BuyOnce flow.
 
@@ -60,3 +60,5 @@ The shop sells one of each item per add-to-cart, so quantity per line is 1. For 
 ## Site quirks and recovery
 - The practice site offers several demo users, and some are deliberately broken (locked out, slow, glitchy). If sign-in fails or a page misbehaves, try the standard demo user again once, then stop and report which user and step failed.
 - Selectors and labels on the site may change. Find controls by their visible label ("Add to cart", "Checkout", "Continue", "Finish"), not by position.
+- The inventory page scrolls, so screen coordinates shift. In the live run a click by coordinate landed on a product description instead of a button. Click by element reference or label, and check the cart badge and the button text ("Remove") after adding an item.
+- The checkout form has First Name, Last Name, and Zip/Postal Code. The Overview page shows "SauceCard #31337" as payment information and free delivery; the total on that page is the number to verify. The confirmation page says "Thank you for your order!".

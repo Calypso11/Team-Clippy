@@ -27,6 +27,8 @@ DEFAULT_POLICY: dict = {
     "quality": {"min_rating": 4.0},
     "delivery": {"max_days": 7},
     "scoring": {"price": 0.55, "speed": 0.20, "reliability": 0.25},
+    # Practice sites that take no real payment. Only on these may the agent do the final step.
+    "sandbox": {"hosts": []},
 }
 
 

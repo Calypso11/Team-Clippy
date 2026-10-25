@@ -10,13 +10,19 @@ The four steps, mapped to what exists in this repo.
 | 3 | **Make it more user-friendly** | JK | Not started. See ideas below | n/a |
 | 4 | **Execute the purchase** (agent doing it) | PK | Orchestration written; gate and card cap tested. **Not yet run against a live site** | `skills/buyonce-buy`, `tools/gate.py`, `tools/issue_card.py` |
 
+## Scope note (2026-10-25)
+Capture (recording → skill) is owned by another teammate. This repo **assumes a skill exists** (`examples/assumed-skill/` stands in for it) and covers everything after: preflight, the run controller, comparison, approval, spend cap, and the stop before payment. `docs/SKILL_CONTRACT.md` is the interface between the two efforts.
+
 ## Next up (in order)
-1. Record the SauceDemo purchase with Cowork's Record a skill or Claude in Chrome, compare against `skills/saucedemo-buy`, and fix the draft. (S)
-2. Run the quote phase of that skill in a browser, then cart and checkout. Fix drift. (PK)
+1. Agree the skill format with the capture teammate against `docs/SKILL_CONTRACT.md`, then run `tools/preflight.py` on their first real output. (S + PK)
+2. ~~Run the controller with a live browser agent on SauceDemo~~ Done 2026-10-25, see `examples/live-run-2026-10-25.md`. Next: run the **quote phase only** on one real vendor site (the controller stops before payment there). (PK)
 3. Record a **second** vendor so the comparison is across two real sites. (S)
 4. Create a Stripe test account with Issuing and run `issue_card.py --execute` once. (PK)
 5. Wire one real connector for budget (accounting) and one for stock. (PK)
-6. Make the approval card pretty: a one-screen view the owner can approve from a phone. (JK)
+6. Make the approval card pretty: a one-screen view the owner can approve from a phone. (JK) This is also the hardening step for `approve`: the owner's tap should be the only way to call it (see `docs/EXECUTOR.md`).
+
+## API path (added 2026-10-25)
+Execution can go through a vendor API instead of a browser. First adapter: Zinc sandbox. Next: run it live from a laptop, wire Zinc/Shopify search for the quote phase. See `docs/API_EXECUTION.md`.
 
 ## Ideas for step 3 (user-friendliness)
 - Approval as a single card with Approve / Change / Cancel, readable on a phone.
