@@ -50,12 +50,16 @@ export async function searchItem(query: string): Promise<SearchHit[]> {
   const queries = [`${query} price`, `${query} wholesale buy`];
   const responses = await Promise.all(
     queries.map((q) =>
-      tvly().search(q, { maxResults: 5, excludeDomains: SKIP_DOMAINS }).catch(() => ({ results: [] })),
+      tvly().search(q, { maxResults: 5, excludeDomains: SKIP_DOMAINS }).catch((err: Error) => {
+        console.error(`tavily search failed for "${q}":`, err.message);
+        return null;
+      }),
     ),
   );
+  if (responses.every((r) => r === null)) return []; // don't cache failures
   const seen = new Set<string>();
   const hits: SearchHit[] = [];
-  for (const r of responses.flatMap((res) => res.results)) {
+  for (const r of responses.flatMap((res) => res?.results ?? [])) {
     const hit = { url: r.url, title: r.title ?? "", content: r.content ?? "" };
     if (seen.has(hit.url) || !looksLikeStore(hit)) continue;
     seen.add(hit.url);
@@ -78,7 +82,10 @@ export function trimAroundPrice(text: string, max = PAGE_CHARS): string {
 export async function extractPages(hits: SearchHit[]): Promise<Page[]> {
   const todo = hits.filter((h) => !pageCache.has(h.url));
   if (todo.length) {
-    const res = await tvly().extract(todo.map((h) => h.url)).catch(() => ({ results: [] as { url: string; title: string | null; rawContent: string }[] }));
+    const res = await tvly().extract(todo.map((h) => h.url)).catch((err: Error) => {
+      console.error("tavily extract failed:", err.message);
+      return { results: [] as { url: string; title: string | null; rawContent: string }[] };
+    });
     const byUrl = new Map(res.results.map((r) => [r.url, r]));
     for (const h of todo) {
       const raw = byUrl.get(h.url)?.rawContent ?? "";
