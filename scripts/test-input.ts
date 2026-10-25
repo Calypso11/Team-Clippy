@@ -1,7 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { NotAnInvoiceError, parseList, readInvoice } from "../lib/input";
-import type { LineItem } from "../lib/types";
+import { buildSuggestionInput, templateSuggestions, writeSuggestions } from "../lib/suggest";
+import type { ItemResult, LineItem, RankedOffer } from "../lib/types";
 
 if (existsSync(".env.local")) process.loadEnvFile(".env.local");
 
@@ -62,13 +63,43 @@ async function testNotInvoice() {
   }
 }
 
+function handMadeResult(item: LineItem, store: string, unitCost: number, current: number, savings: number): ItemResult {
+  const best: RankedOffer = {
+    itemId: item.id, store, title: item.name, url: "https://example.com/p", price: unitCost * item.packSize,
+    packSize: item.packSize, unit: item.unit, shipping: 0, confidence: "high", checkedAt: "2026-10-25",
+    unitCost, baseUnit: item.unit === "each" ? "each" : "lb",
+  };
+  return { item, best, offers: [best], currentUnitCost: current, savingsPerOrder: savings };
+}
+
+async function testSuggestions() {
+  console.log("\n== writeSuggestions (live)");
+  const base = { searchQuery: "", qtyPerOrder: 1 } as const;
+  const results: ItemResult[] = [
+    handMadeResult({ ...base, id: "item-1", name: "12 oz paper hot cups, 1000 ct", packSize: 1000, unit: "each" }, "WebstaurantStore", 0.089, 0.122, 33),
+    handMadeResult({ ...base, id: "item-2", name: "Bread flour, 50 lb bag", packSize: 50, unit: "lb" }, "Costco Business Center", 1.1, 1.5, 20),
+    handMadeResult({ ...base, id: "item-3", name: "Dinner napkins, 3000 ct", packSize: 3000, unit: "each" }, "Amazon", 0.019, 0.019, 0),
+  ];
+  const input = JSON.stringify({ ordersPerMonth: 4, items: buildSuggestionInput(results) });
+  const tips = await writeSuggestions(results, 4);
+  for (const t of tips) console.log(`  - ${t}`);
+  const fromTemplate = JSON.stringify(tips) === JSON.stringify(templateSuggestions(buildSuggestionInput(results)));
+  check(!fromTemplate, "tips written by Claude (not the template fallback)");
+  check(tips.length >= 1 && tips.length <= 3, "1 to 3 tips");
+  check(tips.every((t) => t.split(/\s+/).length < 25), "each tip < 25 words");
+  const allowed = new Set(input.match(/\d+(?:\.\d+)*/g));
+  const stray = tips.flatMap((t) => (t.replace(/,/g, "").match(/\d+(?:\.\d+)*/g) ?? []).filter((n) => !allowed.has(n)));
+  check(stray.length === 0, `every number appears in the input${stray.length ? ` (stray: ${stray.join(", ")})` : ""}`);
+  check(/WebstaurantStore/.test(tips[0]), "biggest saving first");
+}
+
 async function main() {
   const textArg = process.argv.indexOf("--text");
   if (textArg !== -1) {
     show(await parseList(process.argv[textArg + 1] ?? ""));
     return;
   }
-  await Promise.all([testInvoice(), testList(), testNotInvoice()].map((p) => p.catch((e) => {
+  await Promise.all([testInvoice(), testList(), testNotInvoice(), testSuggestions()].map((p) => p.catch((e) => {
     console.error(e);
     failures++;
   })));
