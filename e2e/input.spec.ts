@@ -1,11 +1,11 @@
 import { expect, test } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/app");
 });
 
 test("submit is disabled without input", async ({ page }) => {
-  await expect(page.getByRole("heading", { name: "Clippy 2.0" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Find cheaper supplies in seconds." })).toBeVisible();
   await expect(page.getByTestId("submit-btn")).toBeDisabled();
   await page.getByTestId("list-input").fill("50 lb bread flour");
   await expect(page.getByTestId("submit-btn")).toBeEnabled();

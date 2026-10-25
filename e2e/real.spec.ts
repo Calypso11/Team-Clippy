@@ -10,7 +10,7 @@ test.describe("@real", () => {
     page.locator('[data-testid="results"], [data-testid="error"]').first();
 
   test("typed list gives results or a friendly error in under 75 s", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/app");
     await page.getByTestId("list-input").fill("1000 12 oz paper hot cups");
     await page.getByTestId("submit-btn").click();
     await expect(page.getByTestId("progress")).toBeVisible();
@@ -21,7 +21,7 @@ test.describe("@real", () => {
   });
 
   test("cafe invoice gives 5 items and savings above $0", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/app");
     await page.getByTestId("upload-input").setInputFiles("samples/invoice-cafe.png");
     await page.getByTestId("submit-btn").click();
     await expect(page.getByTestId("results")).toBeVisible({ timeout: 85_000 });
@@ -33,7 +33,7 @@ test.describe("@real", () => {
   });
 
   test("a photo that is not an invoice shows the error card", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/app");
     await page.getByTestId("upload-input").setInputFiles("samples/not-an-invoice.png");
     await page.getByTestId("submit-btn").click();
     await expect(page.getByTestId("error")).toBeVisible({ timeout: 75_000 });

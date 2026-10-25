@@ -16,6 +16,20 @@ export const SKIP_DOMAINS = [
 const NOT_A_STORE = /\b(blog|article|articles|news|review|reviews|best\s+\d*|top\s+\d+|vs\.?|recipe|recipes|how\s+to|guide|forum)\b/i;
 const NOT_A_STORE_PATH = /\/(blog|blogs|news|article|articles|reviews?|recipes?|guides?|forum|wiki)(\/|$)/i;
 
+// Single-product pages: Walmart /ip/, Amazon /dp/, Shopify /products/, Target and Home Depot /p/, etc.
+const PRODUCT_PATH = /\/(ip|dp|gp\/product|products?|p|item|itm|sku)\/|\/\d{5,}(\.html)?$|-p-\d+/i;
+// Category, browse and search-result pages list many products, so their link isn't the product priced.
+const LISTING_PATH = /\/(c|cp|kp|b|browse|search|s|category|categories|collections?|shop|catalog|department|departments|aisle|brands?|deals)(\/|$)/i;
+const SEARCH_PARAMS = ["q", "k", "query", "search", "searchterm", "keyword", "keywords", "st"];
+
+export function isListingPage(url: string): boolean {
+  let u: URL;
+  try { u = new URL(url); } catch { return true; }
+  if (PRODUCT_PATH.test(u.pathname)) return false;
+  if ([...u.searchParams.keys()].some((k) => SEARCH_PARAMS.includes(k.toLowerCase()))) return true;
+  return LISTING_PATH.test(u.pathname);
+}
+
 const MAX_RESULTS = 6;
 const PAGE_CHARS = 6000;
 
@@ -41,7 +55,7 @@ export function looksLikeStore(hit: SearchHit): boolean {
   if (isSkipped(hit.url)) return false;
   if (NOT_A_STORE.test(hit.title)) return false;
   try { if (NOT_A_STORE_PATH.test(new URL(hit.url).pathname)) return false; } catch { return false; }
-  return true;
+  return !isListingPage(hit.url);
 }
 
 export async function searchItem(query: string): Promise<SearchHit[]> {
@@ -50,7 +64,7 @@ export async function searchItem(query: string): Promise<SearchHit[]> {
   const queries = [`${query} price`, `${query} wholesale buy`];
   const responses = await Promise.all(
     queries.map((q) =>
-      tvly().search(q, { maxResults: 5, excludeDomains: SKIP_DOMAINS }).catch((err: Error) => {
+      tvly().search(q, { maxResults: 10, excludeDomains: SKIP_DOMAINS }).catch((err: Error) => {
         console.error(`tavily search failed for "${q}":`, err.message);
         return null;
       }),

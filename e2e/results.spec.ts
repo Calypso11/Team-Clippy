@@ -50,7 +50,7 @@ async function mockApi(page: Page, events: ProgressEvent[], delayMs = 0) {
 }
 
 async function submitList(page: Page) {
-  await page.goto("/");
+  await page.goto("/app");
   await page.getByTestId("list-input").fill("1000 12 oz paper hot cups");
   await page.getByTestId("submit-btn").click();
 }
@@ -79,7 +79,7 @@ test("results render with clean money and valid links", async ({ page }) => {
   const text = await page.locator("body").innerText();
   for (const bad of ["NaN", "undefined", "$-0.00", "-$0.00", "null"]) expect(text).not.toContain(bad);
 
-  const links = page.locator('a:visible', { hasText: "Open product" });
+  const links = page.locator('a:visible', { hasText: "Buy" });
   expect(await links.count()).toBeGreaterThan(0);
   for (const link of await links.all()) {
     expect(await link.getAttribute("href")).toMatch(/^https?:\/\//);
@@ -87,14 +87,14 @@ test("results render with clean money and valid links", async ({ page }) => {
     expect(await link.getAttribute("rel")).toContain("noopener");
   }
 
-  await page.waitForTimeout(700); // let the chat scroll to the answer
+  await page.waitForTimeout(700); // let the page settle
   await page.screenshot({ path: `e2e/screenshots/results-top-${test.info().project.name}.png` });
   await rows.nth(0).getByRole("button", { name: /See other offers/ }).click();
   await expect(rows.nth(0)).toContainText("Test Store B");
 
   await page.screenshot({ path: `e2e/screenshots/results-${test.info().project.name}.png`, fullPage: true });
 
-  await page.getByRole("button", { name: "Start again" }).click();
+  await page.getByTestId("restart-btn").click();
   await expect(page.getByTestId("submit-btn")).toBeVisible();
 });
 
@@ -127,8 +127,9 @@ test("error event shows the error card with Try again", async ({ page }) => {
   await submitList(page);
   await expect(page.getByTestId("error")).toContainText("does not look like an invoice");
   await page.screenshot({ path: `e2e/screenshots/error-${test.info().project.name}.png` });
-  await page.getByRole("button", { name: "Try again" }).click();
-  await expect(page.getByTestId("list-input")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+  await page.getByRole("button", { name: "Change my input" }).click();
+  await expect(page.getByTestId("list-input")).toHaveValue("1000 12 oz paper hot cups");
 });
 
 test("400 response shows its message", async ({ page }) => {
@@ -138,7 +139,7 @@ test("400 response shows its message", async ({ page }) => {
 });
 
 test("real example loads with its label", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/app");
   const btn = page.getByTestId("example-btn");
   test.skip((await btn.count()) === 0, "no fixtures/real-run.json");
   await btn.click();
@@ -147,4 +148,28 @@ test("real example loads with its label", async ({ page }) => {
   const text = await page.locator("body").innerText();
   for (const bad of ["NaN", "undefined", "$-0.00"]) expect(text).not.toContain(bad);
   await page.screenshot({ path: `e2e/screenshots/example-${test.info().project.name}.png`, fullPage: true });
+});
+
+test("adding what you pay turns on savings on the comparison and the dashboard", async ({ page }) => {
+  const items = RESULT.items.map((r) => ({ ...r, item: { ...r.item, pricePaid: undefined }, currentUnitCost: null, savingsPerOrder: null }));
+  await mockApi(page, [{ type: "result", data: { ...RESULT, items, totalSavingsPerOrder: 0, totalSavingsPerMonth: 0, totalSavingsPerYear: 0 } }]);
+  await submitList(page);
+  await expect(page.getByTestId("total-month")).toHaveText("Here are the best prices Clippy found");
+
+  await page.getByRole("button", { name: "Savings Dashboard", exact: true }).click();
+  await expect(page.getByTestId("no-savings-yet")).toBeVisible();
+  await page.getByTestId("no-savings-yet").getByRole("button", { name: "Add what you pay" }).click();
+
+  // Cups: paid $110 per 1000, best $65 landed per 1000, 2 cases per order → $90 per order, 4 orders a month.
+  const cups = page.locator('[data-testid="item-row"]:visible').filter({ hasText: "12 oz paper hot cups" });
+  await cups.getByTestId("add-price-btn").click();
+  await cups.getByTestId("price-paid-input").fill("110");
+  await cups.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByTestId("total-month")).toHaveText("Save $360.00 per month");
+  await expect(cups).toContainText("$0.11 per cup");
+
+  await page.getByRole("button", { name: "Savings Dashboard", exact: true }).click();
+  await expect(page.getByTestId("dashboard")).toContainText("$90.00");
+  await expect(page.getByTestId("dashboard")).toContainText("$4,320.00");
+  await expect(page.getByTestId("dashboard")).toContainText("1 item has a store price but no price from you");
 });

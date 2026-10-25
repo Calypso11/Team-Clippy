@@ -92,6 +92,7 @@ function buildPrompt(item: LineItem, pages: Page[]): string {
 
 Rules:
 - Only the same product type and a similar pack size.
+- Only use a page about ONE specific product. Skip search results, category, brand or "shop all" pages that list several products, even if they show prices: their URL does not open the product you would be pricing.
 - price = USD for ONE pack exactly as shown on the page. NEVER invent or estimate a price; skip the page if no price is shown.
 - packSize and unit come from the page ("1000 count" → packSize 1000, unit "each"; "50 lb" → 50, "lb").
 - shipping only if the page states it (free shipping → 0), otherwise null.

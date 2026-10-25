@@ -56,3 +56,57 @@ export function buildResult(
     ...(notice ? { notice } : {}),
   };
 }
+
+// Units of the base measure the owner buys per order (e.g. 2 cases of 1000 cups = 2000 cups).
+const baseQtyPerOrder = (r: ItemResult) => toBase(r.item.packSize, r.item.unit).qty * r.item.qtyPerOrder;
+
+// What the owner pays now vs. with Clippy's picks, per order, over items where both prices are known.
+export function orderTotals(items: ItemResult[]): { current: number; withClippy: number; savings: number; percent: number } | null {
+  let currentCents = 0;
+  let savingsCents = 0;
+  for (const r of items) {
+    if (r.currentUnitCost === null || r.savingsPerOrder === null) continue;
+    currentCents += toCents(r.currentUnitCost * baseQtyPerOrder(r));
+    savingsCents += toCents(r.savingsPerOrder);
+  }
+  if (currentCents <= 0) return null;
+  return {
+    current: currentCents / 100,
+    withClippy: (currentCents - savingsCents) / 100,
+    savings: savingsCents / 100,
+    percent: Math.round((savingsCents / currentCents) * 1000) / 10,
+  };
+}
+
+export interface StorePick { store: string; items: ItemResult[]; costPerOrder: number; savingsPerOrder: number }
+
+// Group items by their cheapest store, biggest spend first.
+export function storePlan(items: ItemResult[]): StorePick[] {
+  const byStore = new Map<string, { items: ItemResult[]; cost: number; savings: number }>();
+  for (const r of items) {
+    if (!r.best) continue;
+    const s = byStore.get(r.best.store) ?? { items: [], cost: 0, savings: 0 };
+    s.items.push(r);
+    s.cost += toCents(r.best.unitCost * baseQtyPerOrder(r));
+    s.savings += r.savingsPerOrder === null ? 0 : toCents(r.savingsPerOrder);
+    byStore.set(r.best.store, s);
+  }
+  return [...byStore]
+    .map(([store, s]) => ({ store, items: s.items, costPerOrder: s.cost / 100, savingsPerOrder: s.savings / 100 }))
+    .sort((a, b) => b.costPerOrder - a.costPerOrder);
+}
+
+// The owner typed what they pay for one pack after the search: redo that item and the totals with the same offers.
+export function withPricePaid(result: AnalysisResult, itemId: string, pricePaid: number | undefined): AnalysisResult {
+  const items = result.items.map((r) => {
+    if (r.item.id !== itemId) return r;
+    const item = { ...r.item, pricePaid: pricePaid !== undefined && pricePaid > 0 ? pricePaid : undefined };
+    return analyzeItem(item, r.offers);
+  });
+  return { ...buildResult(items, result.ordersPerMonth, result.suggestions, result.notice), generatedAt: result.generatedAt };
+}
+
+// What one order costs if every priced item is bought at its best store.
+export function bestCostPerOrder(items: ItemResult[]): number {
+  return items.reduce((sum, r) => sum + (r.best ? toCents(r.best.unitCost * baseQtyPerOrder(r)) : 0), 0) / 100;
+}

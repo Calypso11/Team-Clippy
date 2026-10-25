@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { analyzeItem, buildResult, rankOffers } from "./compare";
+import { analyzeItem, bestCostPerOrder, buildResult, orderTotals, rankOffers, storePlan, withPricePaid } from "./compare";
 import type { ItemResult, LineItem, Offer } from "./types";
 import { sameDimension, toBase, unitLabel } from "./units";
 
@@ -167,4 +167,45 @@ describe("buildResult", () => {
   it("omits notice when not given", () => {
     expect(buildResult([], 4, [])).not.toHaveProperty("notice");
   });
+});
+
+describe("orderTotals and storePlan", () => {
+  // Paid $100 + $0 shipping per 50 lb bag, 2 bags per order → $200 now. Best: $72 landed per bag → $144.
+  const paid = analyzeItem({ ...flour, pricePaid: 100 }, [offer(), offer({ store: "Dear", price: 90 })]);
+  const unknown = analyzeItem({ ...flour, id: "x" }, [offer({ store: "Other", price: 40, shipping: 0 })]);
+
+  it("totals what you pay now and with Clippy", () => {
+    expect(orderTotals([paid, unknown])).toEqual({ current: 200, withClippy: 144, savings: 56, percent: 28 });
+  });
+  it("is null when no prices were given", () => expect(orderTotals([unknown])).toBeNull());
+  it("groups by best store, biggest spend first", () => {
+    const plan = storePlan([unknown, paid]);
+    expect(plan.map((p) => [p.store, p.costPerOrder, p.savingsPerOrder])).toEqual([
+      ["Store", 144, 56],
+      ["Other", 80, 0],
+    ]);
+  });
+});
+
+describe("withPricePaid", () => {
+  // No price typed: best is $72 landed per 50 lb bag, 2 bags per order.
+  const unpriced = buildResult([analyzeItem(flour, [offer()])], 4, ["tip"], "note");
+
+  it("adds savings once the owner types what they pay", () => {
+    expect(unpriced.totalSavingsPerOrder).toBe(0);
+    const priced = withPricePaid(unpriced, "flour", 100);
+    expect(priced.items[0].savingsPerOrder).toBe(56);
+    expect(priced.totalSavingsPerOrder).toBe(56);
+    expect(priced.totalSavingsPerMonth).toBe(224);
+    expect(priced.totalSavingsPerYear).toBe(2688);
+    expect(priced.generatedAt).toBe(unpriced.generatedAt);
+    expect(priced.suggestions).toEqual(["tip"]);
+    expect(priced.notice).toBe("note");
+  });
+  it("clears the price again", () => {
+    const cleared = withPricePaid(withPricePaid(unpriced, "flour", 100), "flour", undefined);
+    expect(cleared.items[0].item.pricePaid).toBeUndefined();
+    expect(cleared.items[0].savingsPerOrder).toBeNull();
+  });
+  it("totals the best-price cost per order", () => expect(bestCostPerOrder(unpriced.items)).toBe(144));
 });
