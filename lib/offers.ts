@@ -86,11 +86,18 @@ export function cleanOffers(raw: unknown, item: LineItem, allowedUrls: string[],
   return offers;
 }
 
-function buildPrompt(item: LineItem, pages: Page[]): string {
-  const pageText = pages.map((p) => `URL: ${p.url}\nTITLE: ${p.title}\n${p.text}`).join("\n\n-----\n\n");
+export function buildPrompt(item: LineItem, pages: Page[], location?: string, now = new Date()): string {
+  const pageText = pages
+    .map((p) => `URL: ${p.url}\nTITLE: ${p.title}\n${p.publishedDate ? `PAGE DATE: ${p.publishedDate.slice(0, 10)}\n` : ""}${p.text}`)
+    .join("\n\n-----\n\n");
+  const today = now.toISOString().slice(0, 10);
+  const place = location?.trim();
   return `Find store offers for this product: "${item.name}" (${item.packSize} ${item.unit} per pack).
+Today is ${today}.${place ? ` The buyer is in ${place}.` : ""}
 
 Rules:
+- Only current prices. Skip a page whose price is dated, "as of", "last updated" or in a report or price list from more than 12 months before today, or whose PAGE DATE is that old. Skip archived, discontinued and "no longer available" pages.${place ? `
+- Skip a page that says the product is not sold, not delivered or not available in ${place}.` : ""}
 - Only the same product type and a similar pack size.
 - Only use a page about ONE specific product. Skip search results, category, brand or "shop all" pages that list several products, even if they show prices: their URL does not open the product you would be pricing.
 - price = USD for ONE pack exactly as shown on the page. NEVER invent or estimate a price; skip the page if no price is shown.
@@ -113,10 +120,10 @@ function anthropic() {
   return client;
 }
 
-export async function findOffers(item: LineItem): Promise<Offer[]> {
+export async function findOffers(item: LineItem, location?: string): Promise<Offer[]> {
   const deadline = Date.now() + TIME_LIMIT_MS;
   try {
-    const hits = await searchItem(item.searchQuery || item.name);
+    const hits = await searchItem(item.searchQuery || item.name, location);
     if (!hits.length) return [];
     const pages = await extractPages(hits);
     const remaining = deadline - Date.now();
@@ -129,7 +136,7 @@ export async function findOffers(item: LineItem): Promise<Offer[]> {
         tools: [SAVE_OFFERS_TOOL],
         // Sonnet 5.5 rejects forced tool_choice; strict tool + prompt instruction + zod instead.
         tool_choice: { type: "auto" },
-        messages: [{ role: "user", content: buildPrompt(item, pages) }],
+        messages: [{ role: "user", content: buildPrompt(item, pages, location) }],
       },
       { timeout: remaining, maxRetries: 0 },
     );

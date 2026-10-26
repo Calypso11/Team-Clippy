@@ -58,6 +58,7 @@ export default function Clippy({ example, email }: { example: AnalysisResult | n
     if (v.file) form.append("invoice", v.file);
     if (v.list) form.append("list", v.list);
     form.append("ordersPerMonth", String(v.ordersPerMonth));
+    if (v.location) form.append("location", v.location);
 
     try {
       const res = await fetch("/api/analyze", { method: "POST", body: form });

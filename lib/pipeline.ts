@@ -12,6 +12,7 @@ export interface AnalysisInput {
   text?: string;
   image?: { base64: string; mediaType: string };
   ordersPerMonth: number;
+  location?: string; // city, state or ZIP; steers the store search
 }
 
 export interface AnalysisOptions {
@@ -65,8 +66,8 @@ export async function runAnalysis(
   // A failed or unfinished search leaves its slot undefined, which means "no offers".
   const offers: (Offer[] | undefined)[] = new Array(items.length);
   const searches = items.map(async (item, i) => {
-    progress(`Searching ${item.name}…`);
-    offers[i] = await findOffers(item);
+    progress(`Searching ${item.name}${input.location ? ` near ${input.location}` : ""}…`);
+    offers[i] = await findOffers(item, input.location);
   });
   const searched = await withDeadline(Promise.allSettled(searches), remaining() - suggestReserveMs);
   if (searched === TIMED_OUT) notices.push(TIMEOUT_NOTICE);

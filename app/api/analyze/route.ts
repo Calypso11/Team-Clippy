@@ -8,6 +8,7 @@ export const maxDuration = 60;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_LIST_CHARS = 5_000;
+const MAX_LOCATION_CHARS = 80;
 
 const NOT_AN_INVOICE = "That photo does not look like an invoice or receipt. Try another photo or type your list.";
 const NO_ITEMS = "Clippy could not find any items. Try another photo or type your list, one item per line.";
@@ -39,6 +40,10 @@ export async function POST(request: Request) {
     return badRequest("Orders per month must be a whole number from 1 to 30.");
   }
 
+  const locationField = form.get("location");
+  const location = typeof locationField === "string" ? locationField.trim() : "";
+  if (location.length > MAX_LOCATION_CHARS) return badRequest("Keep your location short, like a city and state or a ZIP code.");
+
   const image = file
     ? { base64: Buffer.from(await file.arrayBuffer()).toString("base64"), mediaType: file.type }
     : undefined;
@@ -48,7 +53,7 @@ export async function POST(request: Request) {
     async start(controller) {
       const send = (event: ProgressEvent) => controller.enqueue(encoder.encode(JSON.stringify(event) + "\n"));
       try {
-        const data = await runAnalysis({ text: image ? undefined : text, image, ordersPerMonth: orders }, send);
+        const data = await runAnalysis({ text: image ? undefined : text, image, ordersPerMonth: orders, location: location || undefined }, send);
         send({ type: "result", data });
       } catch (err) {
         console.error("analyze failed:", err instanceof Error ? err.message : err);

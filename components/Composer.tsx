@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import MicButton from "./MicButton";
 import ScreenButton from "./ScreenButton";
 
@@ -12,6 +12,18 @@ export interface InputValues {
   file: File | null;
   list: string;
   ordersPerMonth: number;
+  location: string;
+}
+
+// The last location typed is remembered in this browser so owners only enter it once.
+const LOCATION_KEY = "clippy-location";
+const noSubscribe = () => () => {};
+function savedLocation(): string {
+  try {
+    return localStorage.getItem(LOCATION_KEY) ?? "";
+  } catch {
+    return "";
+  }
 }
 
 // Upload card: drop an invoice photo or type a list, set orders per month, compare.
@@ -21,6 +33,9 @@ export default function Composer({ busy, onSend }: { busy: boolean; onSend: (v: 
   const [fileError, setFileError] = useState<string | null>(null);
   const [list, setList] = useState("");
   const [orders, setOrders] = useState("4");
+  const remembered = useSyncExternalStore(noSubscribe, savedLocation, () => "");
+  const [typedLocation, setLocation] = useState<string | null>(null);
+  const location = typedLocation ?? remembered;
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -51,7 +66,13 @@ export default function Composer({ busy, onSend }: { busy: boolean; onSend: (v: 
 
   function send() {
     if (!canSend) return;
-    onSend({ file, list: list.trim(), ordersPerMonth: ordersNum });
+    const place = location.trim();
+    try {
+      localStorage.setItem(LOCATION_KEY, place);
+    } catch {
+      // Remembering the location is a convenience only.
+    }
+    onSend({ file, list: list.trim(), ordersPerMonth: ordersNum, location: place });
   }
 
   return (
@@ -169,6 +190,29 @@ export default function Composer({ busy, onSend }: { busy: boolean; onSend: (v: 
         placeholder={"One item per line, with quantities and what you pay, or tap the mic and say your order. For example:\n2 cases 12 oz paper hot cups, 1000 ct, $119 per case\n1 bag bread flour, 50 lb, $72"}
         className="block w-full resize-y rounded-xl border border-slate-300 bg-white px-3 py-2 text-[15px] text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
       />
+
+      <label className="mt-4 block">
+        <span className="text-sm font-medium text-slate-800">
+          Your location <span className="font-normal text-slate-500">(optional)</span>
+        </span>
+        <span className="relative mt-1.5 block">
+          <svg viewBox="0 0 20 20" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+            <path d="M10 18s6-5.2 6-10a6 6 0 10-12 0c0 4.8 6 10 6 10z" />
+            <circle cx="10" cy="8" r="2.2" />
+          </svg>
+          <input
+            data-testid="location-input"
+            type="text"
+            autoComplete="postal-code"
+            maxLength={80}
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            placeholder="City and state, or ZIP code, e.g. Austin, TX"
+            className="block w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3 text-[15px] text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+          />
+        </span>
+        <span className="mt-1 block text-xs text-slate-500">Clippy looks for stores that sell or deliver near you.</span>
+      </label>
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <label className="flex items-center gap-2 text-sm text-slate-600">

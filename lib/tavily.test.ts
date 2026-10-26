@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isListingPage, looksLikeStore } from "./tavily";
+import { isListingPage, isStale, looksLikeStore, withLocation } from "./tavily";
 
 describe("isListingPage", () => {
   it.each([
@@ -30,5 +30,37 @@ describe("looksLikeStore", () => {
   it("drops listing pages and keeps product pages", () => {
     expect(looksLikeStore({ url: "https://www.walmart.com/c/kp/sip-lids", title: "Sip Lids", content: "" })).toBe(false);
     expect(looksLikeStore({ url: "https://www.walmart.com/ip/Sip-Lids/123456", title: "Sip Lids", content: "" })).toBe(true);
+  });
+});
+
+describe("isStale", () => {
+  const now = new Date("2026-10-25T12:00:00Z");
+  const hit = (publishedDate?: string) => ({ url: "https://store.com/p/1", title: "Chicken", content: "", publishedDate });
+  it("drops pages dated more than a year ago", () => expect(isStale(hit("2021-03-02"), now)).toBe(true));
+  it("keeps recent pages", () => expect(isStale(hit("2026-06-01"), now)).toBe(false));
+  it("keeps undated or unreadable dates for the prompt to judge", () => {
+    expect(isStale(hit(), now)).toBe(false);
+    expect(isStale(hit("not a date"), now)).toBe(false);
+  });
+});
+
+describe("withLocation", () => {
+  it("adds the place to the query", () => expect(withLocation("chicken breast 40 lb", " Austin, TX ")).toBe("chicken breast 40 lb Austin, TX"));
+  it("leaves the query alone without a place", () => {
+    expect(withLocation("chicken breast 40 lb")).toBe("chicken breast 40 lb");
+    expect(withLocation("chicken breast 40 lb", "  ")).toBe("chicken breast 40 lb");
+  });
+});
+
+describe("documents", () => {
+  it("drops PDF catalogs and price lists", () => {
+    expect(looksLikeStore({ url: "https://www.halseyfoodservice.com/PDF/halsey_product_catalog.pdf", title: "Catalog", content: "" })).toBe(false);
+  });
+});
+
+describe("not stores", () => {
+  it("drops price history sites and bare homepages", () => {
+    expect(looksLikeStore({ url: "https://fred.stlouisfed.org/series/APU0000FF1101", title: "Chicken price", content: "" })).toBe(false);
+    expect(looksLikeStore({ url: "https://www.smartandfinal.com", title: "Smart & Final", content: "" })).toBe(false);
   });
 });

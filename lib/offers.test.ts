@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cleanOffers } from "./offers";
+import { buildPrompt, cleanOffers } from "./offers";
 import type { LineItem } from "./types";
 
 const item: LineItem = { id: "i1", name: "bread flour", searchQuery: "bread flour 50 lb bag", packSize: 50, unit: "lb", qtyPerOrder: 2 };
@@ -37,5 +37,21 @@ describe("cleanOffers", () => {
   it("returns [] for garbage", () => {
     expect(cleanOffers(null, item, urls, now)).toEqual([]);
     expect(cleanOffers({ offers: "x" }, item, urls, now)).toEqual([]);
+  });
+});
+
+describe("buildPrompt", () => {
+  const pages = [{ url: "https://store.com/flour", title: "Flour", text: "$32.50", publishedDate: "2026-09-01T00:00:00Z" }];
+  it("gives today's date, the page date and the freshness rule", () => {
+    const p = buildPrompt(item, pages, undefined, now);
+    expect(p).toContain("Today is 2026-10-25.");
+    expect(p).toContain("PAGE DATE: 2026-09-01");
+    expect(p).toContain("more than 12 months before today");
+    expect(p).not.toContain("The buyer is in");
+  });
+  it("adds the buyer's location when given", () => {
+    const p = buildPrompt(item, pages, "Austin, TX", now);
+    expect(p).toContain("The buyer is in Austin, TX.");
+    expect(p).toContain("not available in Austin, TX");
   });
 });

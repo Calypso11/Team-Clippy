@@ -173,3 +173,18 @@ test("adding what you pay turns on savings on the comparison and the dashboard",
   await expect(page.getByTestId("dashboard")).toContainText("$4,320.00");
   await expect(page.getByTestId("dashboard")).toContainText("1 item has a store price but no price from you");
 });
+
+test("the location is sent with the list and remembered", async ({ page }) => {
+  let sent: string | null = null;
+  await page.route("**/api/analyze", async (route) => {
+    sent = route.request().postDataBuffer()?.toString() ?? "";
+    await route.fulfill({ status: 200, contentType: "application/x-ndjson", body: JSON.stringify({ type: "result", data: RESULT }) + "\n" });
+  });
+  await page.goto("/app");
+  await page.getByTestId("location-input").fill("Austin, TX");
+  await page.getByTestId("list-input").fill("1000 12 oz paper hot cups");
+  await page.getByTestId("submit-btn").click();
+  await expect.poll(() => sent).toContain("Austin, TX");
+  await page.reload();
+  await expect(page.getByTestId("location-input")).toHaveValue("Austin, TX");
+});
