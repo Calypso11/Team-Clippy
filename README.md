@@ -2,6 +2,7 @@
 
 **Small businesses overpay for supplies because nobody has time to price-check every invoice. Clippy does it in under a minute: snap a photo of your supply invoice, and Clippy shows which real stores sell the same items for less — and how much you'd save per order, per month and per year.**
 
+- **Demo video:** https://www.loom.com/share/f5c983ed838e498299a42cb0df5495bc
 - **Live demo:** https://clippy-nu-eight.vercel.app
 - **Code:** https://github.com/Calypso11/Team-Clippy
 
